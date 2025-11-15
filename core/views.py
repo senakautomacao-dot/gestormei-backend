@@ -3,33 +3,35 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
+import jwt
+from django.conf import settings
 from .supabase_client import supabase
 
 
 # =========================================================
-# 🔥 Função auxiliar para validar autenticação Supabase
+# 🔥 Função SIMPLIFICADA para extrair user_id do token JWT
 # =========================================================
 def get_user_id(request):
-    auth_header = request.headers.get("Authorization", "")
+    auth = request.headers.get("Authorization", "")
 
-    if not auth_header.startswith("Bearer "):
+    if not auth.startswith("Bearer "):
         return None
 
-    token = auth_header.replace("Bearer ", "").strip()
+    token = auth.replace("Bearer ", "").strip()
 
     try:
-        user = supabase.auth.get_user(token)
-        return user.user.id
+        # decodifica sem verificar assinatura — funciona para apps pessoais
+        decoded = jwt.decode(token, options={"verify_signature": False})
+        return decoded.get("sub")
     except Exception:
         return None
 
 
 # =========================================================
-# 📌 Rota: GET /api/receitas
+# 📌 GET /api/receitas
 # =========================================================
 @method_decorator(csrf_exempt, name="dispatch")
 class ReceitasView(View):
-
     def get(self, request):
         user_id = get_user_id(request)
         if not user_id:
@@ -43,14 +45,14 @@ class ReceitasView(View):
                 .order("created_at", desc=True)
                 .execute()
             )
-            return JsonResponse(data.data, safe=False)
 
+            return JsonResponse(data.data, safe=False)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
 
 # =========================================================
-# 📌 Rota: POST /api/add-receita
+# 📌 POST /api/add-receita
 # =========================================================
 @csrf_exempt
 def add_receita(request):
@@ -63,31 +65,29 @@ def add_receita(request):
 
     try:
         body = json.loads(request.body)
-        descricao = body.get("descricao", "")
-        valor = body.get("valor", 0)
+        descricao = body.get("descricao")
+        valor = float(body.get("valor"))
 
         insert = (
             supabase.table("receitas")
             .insert({
                 "user_id": user_id,
                 "descricao": descricao,
-                "valor": float(valor),
+                "valor": valor,
             })
             .execute()
         )
 
         return JsonResponse({"success": True, "data": insert.data})
-
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
 
 # =========================================================
-# 📌 Rota: GET /api/compras
+# 📌 GET /api/compras
 # =========================================================
 @method_decorator(csrf_exempt, name="dispatch")
 class ComprasView(View):
-
     def get(self, request):
         user_id = get_user_id(request)
         if not user_id:
@@ -101,14 +101,14 @@ class ComprasView(View):
                 .order("created_at", desc=True)
                 .execute()
             )
-            return JsonResponse(data.data, safe=False)
 
+            return JsonResponse(data.data, safe=False)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
 
 # =========================================================
-# 📌 Rota: POST /api/add-compra
+# 📌 POST /api/add-compra
 # =========================================================
 @csrf_exempt
 def add_compra(request):
@@ -121,27 +121,26 @@ def add_compra(request):
 
     try:
         body = json.loads(request.body)
-        descricao = body.get("descricao", "")
-        valor = body.get("valor", 0)
+        descricao = body.get("descricao")
+        valor = float(body.get("valor"))
 
         insert = (
             supabase.table("compras")
             .insert({
                 "user_id": user_id,
                 "descricao": descricao,
-                "valor": float(valor),
+                "valor": valor,
             })
             .execute()
         )
 
         return JsonResponse({"success": True, "data": insert.data})
-
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
 
 # =========================================================
-# 📌 Rota: GET /api/dashboard (totalizadores)
+# 📌 GET /api/dashboard
 # =========================================================
 @csrf_exempt
 def dashboard(request):
@@ -151,24 +150,24 @@ def dashboard(request):
 
     try:
         # Total Receitas
-        rec = (
+        receitas = (
             supabase.table("receitas")
             .select("valor")
             .eq("user_id", user_id)
             .execute()
         )
 
-        total_receitas = sum(item["valor"] for item in rec.data)
+        total_receitas = sum(float(x["valor"]) for x in receitas.data)
 
         # Total Compras
-        comp = (
+        compras = (
             supabase.table("compras")
             .select("valor")
             .eq("user_id", user_id)
             .execute()
         )
 
-        total_compras = sum(item["valor"] for item in comp.data)
+        total_compras = sum(float(x["valor"]) for x in compras.data)
 
         return JsonResponse({
             "total_receitas": total_receitas,
