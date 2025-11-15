@@ -35,6 +35,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # 🔥 Evitar erro 403 CSRF no POST com token
 CSRF_TRUSTED_ORIGINS = [
     "https://gestor-mei-backend.onrender.com",
+    "https://gestor-mei-front.onrender.com", 
     "https://zrpxtooampraytmkywhl.supabase.co",
     "http://localhost:3000",
     "http://localhost:8000",
@@ -68,3 +69,4 @@ REST_FRAMEWORK = {
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE = os.environ.get("SUPABASE_SERVICE_ROLE", "")
+
