@@ -1,49 +1,44 @@
 import os
 import requests
-from rest_framework import authentication, exceptions
+from rest_framework.authentication import BaseAuthentication
+from rest_framework import exceptions
 from types import SimpleNamespace
 
-SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
+SUPABASE_URL = os.getenv("SUPABASE_URL")
 
-class SupabaseAuthentication(authentication.BaseAuthentication):
+
+class SupabaseAuthentication(BaseAuthentication):
+    """
+    Valida o token JWT do Supabase chamando /auth/v1/user.
+    """
+
     def authenticate(self, request):
-        auth_header = authentication.get_authorization_header(request).split()
+        auth = request.headers.get("Authorization")
 
-        if not auth_header or auth_header[0].lower() != b'bearer':
+        if not auth:
             return None
 
-        if len(auth_header) == 1:
-            raise exceptions.AuthenticationFailed('Token inválido no header.')
+        parts = auth.split()
 
-        token = auth_header[1].decode()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            raise exceptions.AuthenticationFailed("Token Bearer inválido")
 
-        if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-            raise exceptions.AuthenticationFailed('Supabase não configurado.')
+        token = parts[1]
 
-        url = f"{SUPABASE_URL}/auth/v1/user"
-        headers = {
-            'Authorization': f'Bearer {token}',
-            'apikey': SUPABASE_ANON_KEY,
-        }
-
-        try:
-            resp = requests.get(url, headers=headers, timeout=5)
-        except Exception:
-            raise exceptions.AuthenticationFailed('Falha ao conectar no Supabase.')
+        resp = requests.get(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={"Authorization": f"Bearer {token}"}
+        )
 
         if resp.status_code != 200:
-            raise exceptions.AuthenticationFailed('Token inválido ou expirado.')
+            raise exceptions.AuthenticationFailed("Token inválido")
 
         data = resp.json()
 
-        user_id = data.get('id') or data.get('sub') or data.get('user_id')
-        if not user_id:
-            raise exceptions.AuthenticationFailed('ID do usuário não encontrado.')
+        user = SimpleNamespace(
+            id=data.get("id"),
+            email=data.get("email"),
+            raw=data
+        )
 
-        user = SimpleNamespace()
-        user.id = user_id
-        user.email = data.get('email')
-        user.is_authenticated = True
-
-        return (user, None)
+        return (user, token)
