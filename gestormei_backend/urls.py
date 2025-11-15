@@ -10,3 +10,4 @@ urlpatterns = [
     path("status/", status_view),
     path("api/", include("core.urls")),
 ]
+
