@@ -1,6 +1,9 @@
 Django>=4.2
-djangorestframework
-requests
-psycopg2-binary
 gunicorn
 django-cors-headers
+djangorestframework>=3.14
+supabase>=1.0.0
+python-dotenv>=1.0.0
+requests>=2.28
+psycopg2-binary>=2.9
+django-cors-headers>=3.13
