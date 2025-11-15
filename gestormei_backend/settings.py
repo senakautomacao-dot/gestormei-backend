@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["*", "gestor-mei-backend.onrender.com"]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -29,6 +29,17 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
+# 🔥 Permitir requisições do frontend
+CORS_ALLOW_ALL_ORIGINS = True
+
+# 🔥 Evitar erro 403 CSRF no POST com token
+CSRF_TRUSTED_ORIGINS = [
+    "https://gestor-mei-backend.onrender.com",
+    "https://zrpxtooampraytmkywhl.supabase.co",
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
+
 ROOT_URLCONF = 'gestormei_backend.urls'
 WSGI_APPLICATION = 'gestormei_backend.wsgi.application'
 
@@ -50,12 +61,10 @@ REST_FRAMEWORK = {
         "core.auth.SupabaseAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-    "rest_framework.permissions.AllowAny",
-),
+        "rest_framework.permissions.AllowAny",
+    ),
 }
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SUPABASE_SERVICE_ROLE = os.environ.get("SUPABASE_SERVICE_ROLE", "")
-
-
